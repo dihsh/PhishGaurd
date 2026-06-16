@@ -1,43 +1,100 @@
+# PhishGuard 🛡️
 
-  PhishGuard is a defensive Spring Boot web service that classifies whether a message (email body, SMS, or chat text) is
-  phishing. You POST it some content and it returns a risk verdict — it never sends, blocks, quarantines, or clicks
-  anything. It's a detector, not an enforcement or attack tool.
+PhishGuard is a high-performance, defensive Spring Boot web service designed to classify whether a message (email body, SMS, or chat text) is a phishing attempt. It operates strictly as a **passive detector**—it scores and returns a risk verdict without ever sending, blocking, quarantining, or interacting with the underlying content.
 
-  It scores a message by combining two independent analysers:
+The core strength of PhishGuard lies in its **hybrid intelligence architecture**: it seamlessly blends deterministic, hand-written heuristic rules with localized, privacy-first **Artificial Intelligence (AI)** to provide highly accurate, explainable risk verdicts.
 
-  ┌─────────────┬────────────────────────────────────────────────────────────────────┬──────────────────────────────┐
-  │  Analyser   │                             What it is                             │             Role             │
-  ├─────────────┼────────────────────────────────────────────────────────────────────┼──────────────────────────────┤
-  │ Heuristic   │ ~13 hand-written rules (raw-IP links, @-in-URL, punycode,          │ Always runs; fast, free,     │
-  │ engine      │ link-text mismatch, urgency/credential/reward language,            │ fully explainable            │
-  │             │ brand-from-freemail spoofing, etc.), each with a weight            │                              │
-  ├─────────────┼────────────────────────────────────────────────────────────────────┼──────────────────────────────┤
-  │ Local LLM   │ llama3.2 queried over its local HTTP API, returns {verdict,        │ Optional booster; isolated   │
-  │ (Ollama)    │ confidence, reasons}                                               │ behind try/catch so it can   │
-  │             │                                                                    │ never break a scan           │
-  └─────────────┴────────────────────────────────────────────────────────────────────┴──────────────────────────────┘
+---
 
-  The two scores are blended (default 50/50, configurable) into a final 0–100, which maps to:
-  - a Verdict — LIKELY_SAFE / SUSPICIOUS / PHISHING
-  - a RiskLevel — LOW / MEDIUM / HIGH / CRITICAL
+## 🚀 Key Features & Architecture
 
-  Every scan is persisted to an in-memory H2 database for audit/history, and a dependency-free single-page web UI
-  (served at the root) lets you try it by hand.
+PhishGuard scores incoming messages by combining two completely independent analysis layers:
 
-  Stack
+### 1. Hybrid Detection Pipeline
 
-  Java 21 · Spring Boot 3.5 (web, data-jpa, validation) · H2 in-memory DB · Ollama (optional) · Maven · JUnit 5.
+| Analyser | Mechanism | Key Characteristics |
+| --- | --- | --- |
+| **Heuristic Engine** | ~13 hand-written rules targeting common attack vectors (e.g., raw-IP links, `@` in URLs, punycode, link-text mismatches, urgency/credential/reward language, brand-from-freemail spoofing). | **Always runs.** Ultra-fast, zero-cost, and 100% explainable. Each rule carries an adjustable weight. |
+| **Local AI Engine** | **Llama 3.2** queried locally via an isolated HTTP API (**Ollama**). Evaluates semantic context and linguistic manipulation. | **Optional Booster.** Sandboxed inside robust fault-tolerance hooks (`try/catch`) so a model timeout or failure can never break a core scan. |
 
-  How to run
+### 2. Risk Evaluation & Persistence
 
-  cd IdeaProjects/ai-phishing-security-gateway
-  mvn spring-boot:run        # then open http://localhost:8081
-  Run heuristics-only (no LLM) with --phishguard.llm.enabled=false.
+* **Blended Scoring:** The scores from both engines are blended using a configurable ratio (defaulting to a `50/50` split) into a finalized score ranging from `0` to `100`.
+* **Classification Mapping:** The final numerical score maps directly to an actionable **Verdict** (`LIKELY_SAFE`, `SUSPICIOUS`, `PHISHING`) and an internal **RiskLevel** (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+* **Audit Logging:** Every scan is persisted to an in-memory relational database for history tracking and auditing.
+* **Standalone UI:** Includes a dependency-free, zero-configuration Single Page Application (SPA) served right at the root URL for easy manual testing.
 
-  API surface
+---
 
-  - POST /api/scan — analyse a message → verdict + both scores + every fired rule + LLM reasons
-  - GET /api/scans?page=&size= — paged history
-  - GET /api/scans/{id} — full stored record
-  - GET /api/health — liveness + whether the LLM is enabled
-   
+## 🛠️ Tech Stack
+
+* **Language & Framework:** Java 21 / Spring Boot 3.5
+* **Persistence:** Spring Data JPA / H2 In-Memory Database
+* **Artificial Intelligence:** Local Large Language Model via Ollama (Llama 3.2)
+* **Build System & Testing:** Maven / JUnit 5
+* **Validation:** Spring Boot Starter Validation
+
+---
+
+## 📦 API Surface
+
+### 1. Analyze Content
+
+* **Endpoint:** `POST /api/scan`
+* **Payload:** Text payload representing the message body.
+* **Response:** Returns the final verdict, both independent scores, an explicit array of every heuristic rule that fired, and the raw semantic reasoning generated by the AI model.
+
+### 2. Audit History
+
+* **Endpoint:** `GET /api/scans?page={page}&size={size}`
+* **Response:** A paginated timeline of historical scans.
+
+### 3. Fetch Single Record
+
+* **Endpoint:** `GET /api/scans/{id}`
+* **Response:** The full stored entity record for a specific audit identifier.
+
+### 4. Health Check
+
+* **Endpoint:** `GET /api/health`
+* **Response:** Liveness probe details, along with the operational status/readiness of the local AI engine.
+
+---
+
+## 🏃 Getting Started
+
+### Prerequisites
+
+* Java 21 SDK installed
+* Maven installed
+* *(Optional)* [Ollama](https://ollama.com/) running locally with the `llama3.2` model downloaded if you intend to leverage the AI layer.
+
+### Running the Application
+
+1. Clone or navigate to the project directory:
+```bash
+cd IdeaProjects/ai-phishing-security-gateway
+
+```
+
+
+2. Boot the application using the Maven wrapper:
+```bash
+mvn spring-boot:run
+
+```
+
+
+3. Access the interactive web interface:
+> Open your browser and navigate to **http://localhost:8081**
+
+
+
+### Running in Heuristics-Only Mode (Disabling AI)
+
+If you want to run PhishGuard in resource-constrained environments or without installing Ollama, you can easily turn off the AI component via a command-line flag:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.arguments="--phishguard.llm.enabled=false"
+
+```
