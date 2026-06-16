@@ -2,7 +2,7 @@
 
 PhishGuard is a high-performance, defensive Spring Boot web service designed to classify whether a message (email body, SMS, or chat text) is a phishing attempt. It operates strictly as a **passive detector**—it scores and returns a risk verdict without ever sending, blocking, quarantining, or interacting with the underlying content.
 
-The core strength of PhishGuard lies in its **hybrid intelligence architecture**: it seamlessly blends deterministic, hand-written heuristic rules with localized, privacy-first **Artificial Intelligence (AI)** to provide highly accurate, explainable risk verdicts.
+The core strength of PhishGuard lies in its **hybrid intelligence architecture**: it seamlessly blends deterministic, hand-written heuristic rules with localized, privacy-first **RAG & AI** to provide highly accurate, explainable risk verdicts.
 
 ---
 
