@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: ai-phishing-security-gateway
+  ai:
+    ollama:
+      # Local, free Ollama server. Override with OLLAMA_BASE_URL if it runs elsewhere.
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      # Don't try to download models on startup; we expect `ollama pull llama3.2` to have run.
+      init:
+        pull-model-strategy: never
+      chat:
+        options:
+          model: ${OLLAMA_MODEL:llama3.2}
+          # Low temperature -> stable, repeatable risk scores for the same email.
+          temperature: 0.0
+          # Ollama JSON mode: force clean, parseable JSON (no markdown fences / prose) so the
+          # structured-output converter reliably binds the reply to LlmThreatAssessment.
+          format: json
+
+server:
+  port: ${SERVER_PORT:8081}
+
+logging:
+  level:
+    com.example.securitygateway: INFO
